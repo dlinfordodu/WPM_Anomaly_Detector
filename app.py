@@ -24,7 +24,7 @@ PAGE_HTML = '''
   <body>
     <div class="container">
       <h1>Typing Anomaly Detector</h1>
-      <p>Enter the words typed and the time in seconds to check whether the typing speed is anomalous.</p>
+      <p>Enter the words typed and the time in seconds to check whether the typing speed is anomalous. (App developed by Daniel Linford.)</p>
       <form method="post">
         <label for="words">Words</label>
         <input id="words" name="words" type="number" step="0.01" required value="{{ words }}">
