@@ -21,6 +21,11 @@ def calculate_probability(n, data):
     else:
         return round(data[max(data)][1] * 5, 2)
 
+import argparse
+import os
+import sys
+
+
 def calculate_z_score(n, data):
 # returns average, standard deviation, and z-score
 # when the z-score is close to 0, it means the text was likely student generated
@@ -65,21 +70,68 @@ data = {
     120: [122.5, 0.000127],
 }
 
-words = float(input("Enter the number of words:"))
-seconds = float(input("Enter the number of seconds:"))
-n = to_wpm(words, seconds)
 
-probability = calculate_probability(n, data)
-mean, std_dev, z_score = calculate_z_score(n, data)
-probability = probability*100
-mean = round(mean, 2)
-std_dev = round(std_dev, 2)
+def get_float_input(prompt):
+    while True:
+        try:
+            return float(input(prompt))
+        except ValueError:
+            print('Please enter a valid floating-point number.')
 
-print('The student typed at a rate of ' + str(n) + ' words per minute.')
-print('The average human types at a rate of ' + str(mean) + '+/-' + str(std_dev) + ' words per minute.')
-print('The student typed faster than at least ' + str(100-probability) + '% of students.')
-print('The z-score is: ' + str(z_score))
-if z_score > 2.5:
-    print('This z-score is anomalous and may suggest generative AI usage.')
-else:
-    print('This z-score is not anomalous and might not suggest generative AI usage.')
+
+def get_env_float(name):
+    value = os.getenv(name)
+    if value is None:
+        return None
+    try:
+        return float(value)
+    except ValueError:
+        raise ValueError(f'Environment variable {name} must be a float.')
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description='Calculate words-per-minute anomaly statistics for student typing.'
+    )
+    parser.add_argument('--words', type=float, help='Number of words typed.')
+    parser.add_argument('--seconds', type=float, help='Time interval in seconds.')
+    args = parser.parse_args()
+
+    if args.words is None or args.seconds is None:
+        if sys.stdin.isatty():
+            if args.words is None:
+                args.words = get_float_input('Enter the number of words: ')
+            if args.seconds is None:
+                args.seconds = get_float_input('Enter the number of seconds: ')
+        else:
+            if args.words is None:
+                args.words = get_env_float('WORDS')
+            if args.seconds is None:
+                args.seconds = get_env_float('SECONDS')
+            if args.words is None or args.seconds is None:
+                parser.error(
+                    'When stdin is not interactive, provide --words and --seconds or set WORDS and SECONDS environment variables.'
+                )
+
+    words = args.words
+    seconds = args.seconds
+    n = to_wpm(words, seconds)
+
+    probability = calculate_probability(n, data)
+    mean, std_dev, z_score = calculate_z_score(n, data)
+    probability = probability * 100
+    mean = round(mean, 2)
+    std_dev = round(std_dev, 2)
+
+    print('The student typed at a rate of ' + str(n) + ' words per minute.')
+    print('The average human types at a rate of ' + str(mean) + '+/-' + str(std_dev) + ' words per minute.')
+    print('The student typed faster than at least ' + str(100-probability) + '% of students.')
+    print('The z-score is: ' + str(z_score))
+    if z_score > 2.5:
+        print('This z-score is anomalous and may suggest generative AI usage.')
+    else:
+        print('This z-score is not anomalous and might not suggest generative AI usage.')
+
+
+if __name__ == '__main__':
+    main()
